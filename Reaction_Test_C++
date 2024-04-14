@@ -1,0 +1,130 @@
+#include <Servo.h>
+Servo myServo;
+#include <LiquidCrystal.h>
+const int rs = 8, en = 9, d4 = 10, d5 = 11, d6 = 12, d7 = 13;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+byte button = 7;
+int light = 6;
+int buzzer = 5;
+int startTime;
+int endTime;
+int duration;
+int average;
+int totaltime;
+byte buttonMAudio = 2;
+byte buttonRLight = 3;
+byte buttonLServo = A0;
+
+void displayStartMessage(); // Function prototypes
+void reactionTest(int testType);
+void displayMessage(const String &line1, const String &line2, unsigned int delayTime = 0);
+void startingSequence();
+
+void setup() {
+  myServo.attach(4);
+  lcd.begin(16, 2); //number of columns and rows
+  Serial.begin(9600);
+  randomSeed(analogRead(0));
+  pinMode(buzzer, OUTPUT);
+  pinMode(button,INPUT_PULLUP);
+  pinMode(buttonMAudio,INPUT_PULLUP);
+  pinMode(buttonRLight,INPUT_PULLUP);
+  pinMode(buttonLServo,INPUT_PULLUP);
+  pinMode(light,OUTPUT);}
+
+void loop() {
+  displayStartMessage();
+  while (digitalRead(buttonMAudio) != LOW && digitalRead(buttonRLight) != LOW && digitalRead(buttonLServo) != LOW);
+  if (digitalRead(buttonMAudio) == LOW) {
+    displayMessage(" Audio Reaction", " Test Selected", 3000);
+    startingSequence();
+    reactionTest(0);
+    delay(10000);}
+  else if (digitalRead(buttonRLight) == LOW) {
+    displayMessage(" Light Reaction"," Test Selected",3000);
+    startingSequence();
+    reactionTest(1);
+    delay(10000);}
+  else if (digitalRead(buttonLServo) == LOW) {
+    displayMessage("Tactile Reaction"," Test Selected",3000);
+    startingSequence();
+    reactionTest(2);
+    delay(10000);}}
+ 
+void reactionTest(int testType) {// 0 for audio, 1 for light, 2 for servo
+  average = 0;
+  totaltime = 0;
+  lcd.clear();
+  for (int i = 1; i <= 10; i++) {
+    lcd.print("Trial #");
+    lcd.setCursor(7,0);
+    lcd.print(i);
+    lcd.setCursor(0,1);
+    lcd.print("Average:      ms");
+    lcd.setCursor(8,1);
+    lcd.print(average);
+    lcd.print("  ");
+    int randN = random(0, 10000);
+    delay(randN);
+    if (testType == 0) {
+      digitalWrite(buzzer, HIGH);} 
+    else if (testType == 1){
+      digitalWrite(light, HIGH);}
+    else if (testType == 2){
+      myServo.write(90);}
+
+    startTime = millis();
+
+    bool butprevstate = digitalRead(button);
+    while (true) {
+      bool butcurstate = digitalRead(button);
+      if (butprevstate == HIGH && butcurstate == LOW) {
+        endTime = millis();
+        if (testType == 0) {
+          digitalWrite(buzzer, LOW);} 
+        else if (testType == 1){
+          digitalWrite(light, LOW);}
+        else if (testType == 2){
+          myServo.write(0);}
+        break;} //exit loop
+      butprevstate = butcurstate;}
+
+    duration = endTime - startTime;
+    totaltime += duration;
+    average = totaltime / i;
+    Serial.println(duration);
+    lcd.setCursor(8,1);
+    lcd.print(average);
+    lcd.print("  ");}}
+
+ void displayStartMessage() {
+  displayMessage("Reaction Time","Test (10 Trials)",5000);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(" Utilize The Left Most Button For Trials  "); 
+  delay(1000);
+  for (int i = 0; i < 25; i++) { 
+    lcd.scrollDisplayLeft();
+    delay(300);}
+  
+  displayMessage("Please Press Mid","  L or R Button",3000);
+  displayMessage("L-Physi, M-Audio", "  R-Light Test  ",0);}
+
+void startingSequence() {
+  lcd.clear();
+  lcd.print(" Starting In: ");
+  for (int i=10; i>-1; i--){
+    lcd.setCursor(14, 0);
+    lcd.print(i);
+    lcd.print(" ");
+    delay(1000);}}
+
+void displayMessage(const String &line1, const String &line2, unsigned int delayTime = 0) { //use pointers for memory efficency
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(line1);
+  lcd.setCursor(0, 1);
+  lcd.print(line2);
+  if (delayTime > 0) {
+    delay(delayTime);}}
